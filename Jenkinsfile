@@ -3,8 +3,8 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "wafa23/auth-service1"
-        SONAR_TOKEN = credentials('jenkins-sonar') // Stocké dans Jenkins Credentials
-        SONAR_HOST_URL = 'http://localhost:9000' // Change avec l'URL de ton serveur Sonar
+        SONAR_TOKEN = credentials('jenkins-sonar')               // ID des credentials Sonar dans Jenkins
+        SONAR_HOST_URL = 'http://localhost:9000'                 // URL du serveur SonarQube
     }
 
     options {
@@ -14,34 +14,41 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/wafaabbes/auth-service1.git'
             }
         }
 
-        stage('Install dependencies') {
+        stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                sh 'npm ci'    // Plus rapide et plus sûr que 'npm install' en CI
             }
         }
 
-        stage('Test') {
+        stage('Run Tests') {
             steps {
-                sh 'chmod +x ./node_modules/.bin/jest || true'
-                sh 'npx jest || echo "Tests échoués (continuer pour debug)"'
+                script {
+                    try {
+                        sh 'npx jest --ci'
+                    } catch (Exception e) {
+                        echo "⚠️ Tests échoués, continuer le pipeline pour debug."
+                    }
+                }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('MySonarQube') {
+                withSonarQubeEnv('MySonarQube') {                 // 'MySonarQube' doit être le nom du serveur configuré dans Jenkins
                     sh """
                         npx sonar-scanner \
-                        -Dsonar.projectKey=auth-service \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=$SONAR_HOST_URL \
-                        -Dsonar.login=$SONAR_TOKEN
+                          -Dsonar.projectKey=auth-service \
+                          -Dsonar.sources=. \
+                          -Dsonar.host.url=${SONAR_HOST_URL} \
+                          -Dsonar.login=${SONAR_TOKEN} \
+                          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
                     """
                 }
             }
@@ -52,23 +59,23 @@ pipeline {
                 script {
                     def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     def imageTag = "${DOCKER_IMAGE}:${commitHash}"
-                    sh "docker build -t $imageTag ."
+                    sh "docker build -t ${imageTag} ."
+                    env.IMAGE_TAG = imageTag
                 }
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    script {
-                        def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                        def imageTag = "${DOCKER_IMAGE}:${commitHash}"
-
-                        sh """
-                            echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
-                            docker push "$imageTag" || { echo "Échec du push de l'image Docker"; exit 1; }
-                        """
-                    }
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                        echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                        docker push "${IMAGE_TAG}"
+                    """
                 }
             }
         }
@@ -79,10 +86,10 @@ pipeline {
             echo '✅ Pipeline exécutée avec succès !'
         }
         failure {
-            echo '❌ Une erreur est survenue pendant le pipeline.'
+            echo '❌ Échec de l’exécution du pipeline.'
         }
         always {
-            echo '📝 Pipeline terminée.'
+            echo '📝 Fin du pipeline.'
         }
     }
 }
