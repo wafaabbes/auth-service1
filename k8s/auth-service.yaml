@@ -5,7 +5,7 @@ metadata:
   namespace: microservices-app
 spec:
   selector:
-    app: mysql
+    app: mariadb
   ports:
     - protocol: TCP
       port: 3306
