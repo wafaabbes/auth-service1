@@ -65,7 +65,7 @@ pipeline {
 
         stage('Deploy to K3s') {
             steps {
-                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                withCredentials([file(credentialsId: 'kubeeconfig', variable: 'KUBECONFIG')]) {
                     script {
                         // Déployer avec kubectl
                         sh """
