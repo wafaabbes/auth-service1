@@ -64,6 +64,23 @@ pipeline {
         }
     }
 
+     stage('Deploy to K3s') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    script {
+                        // Déployer avec kubectl
+                        sh """
+                            export KUBECONFIG=${KUBECONFIG}
+                            kubectl apply -f k8s/auth-deployment.yaml
+                            kubectl apply -f k8s/auth-service.yaml
+                        """
+                    }
+                }
+            }
+        }
+
+    }
+
     post {
         success {
             echo '✅ Pipeline exécutée avec succès !'
