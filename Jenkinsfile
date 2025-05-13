@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "wafa23/auth-service"
+        DOCKER_IMAGE = "wafa23/auth-service1"
         SONAR_TOKEN = credentials('jenkins-sonar') // Stocké dans Jenkins Credentials
         SONAR_HOST_URL = 'http://localhost:9000' // Change avec l'URL de ton serveur Sonar
     }
@@ -16,7 +16,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/wafaabbes/auth-service.git'
+                git branch: 'main', url: 'https://github.com/wafaabbes/auth-service1.git'
             }
         }
 
