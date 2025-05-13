@@ -75,4 +75,8 @@ pipeline {
             echo '📝 Fin du pipeline.'
         }
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 23a0bcc5f7c49224ed481b45612762ffc0360f5a
